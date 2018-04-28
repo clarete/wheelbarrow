@@ -1,0 +1,11 @@
+* Fill Template
+
+  This is an exercise for learning about interpreters, compilers, and
+  how to turn interpreters into compilers. I'm following the
+  incredibly fun tutorial from https://github.com/darius/toot! Thank
+  you so much!!!
+
+  Since I really only learn by repetition, I have to do one thing a
+  few times before I fully grasp it. But I do need some variation to
+  not get bored to death while repeating myself. That's why I'm
+  implementing these exercises in different languages.
