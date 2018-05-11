@@ -6,10 +6,32 @@
 
 #include "bits.h"
 
-#define STACK_SIZE 2048
+#define STACK_MAX_SIZE 4096
+
+typedef enum {
+  OBJ_INT,
+  /* OBJ_FLOAT, */
+} obj_type_t;
+
+typedef struct object {
+  obj_type_t type;
+
+  /* Properties used by the GC */
+  short int marked;
+  struct object *next;
+
+  /* Value Container */
+  union {
+    /* OBJ_INT */
+    int32_t intval;
+    /* OBJ_FLOAT */
+    /* float floatval; */
+  };
+} obj_t;
 
 typedef struct {
-  void *stack[STACK_SIZE];
+  obj_t *stack[STACK_MAX_SIZE];
+  obj_t *objs;
   int32_t stack_pointer;
 } vm_t;
 
@@ -54,8 +76,8 @@ void vm_init (vm_t *vm);
 void *vm_run (vm_t *vm, char *b, size_t l);
 
 /* Stack */
-void vm_push (vm_t *vm, void *i);
-void *vm_pop (vm_t *vm);
+void vm_push (vm_t *vm, obj_t *i);
+obj_t *vm_pop (vm_t *vm);
 
 /* Bytecode Generator */
 size_t vmb_write_opc (char *b, size_t s, vmi_t v);
