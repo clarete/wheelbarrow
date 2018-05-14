@@ -162,7 +162,7 @@ static void vmi_ret (vm_t *vm)
 {
 }
 
-void *vm_run (vm_t *vm, char *buffer, size_t len)
+void *vm_run (vm_t *vm, code_t *buffer, size_t len)
 {
   size_t rcursor = 0;
   vmi_t opc;
@@ -196,25 +196,25 @@ void *vm_run (vm_t *vm, char *buffer, size_t len)
   return NULL;
 }
 
-size_t vmb_write_int (char *buffer, size_t start, int i)
+size_t vmb_write_int (code_t *buffer, size_t start, int i)
 {
   vmb_pack_word (buffer, start, i | 0x8000000000000000);
   return 1;
 }
 
-size_t vmb_read_int (char *buffer, size_t position, int *value)
+size_t vmb_read_int (code_t *buffer, size_t position, int *value)
 {
   vmw_t word = vmb_unpack_word (buffer, position);
   *value = word & 0x7FFFFFFFFFFFFFFF;
   return 1;
 }
 
-size_t vmb_write_opc (char *buffer, size_t start, vmi_t opc) {
+size_t vmb_write_opc (code_t *buffer, size_t start, vmi_t opc) {
   vmb_pack_word (buffer, start, opc);
   return 1;
 }
 
-size_t vmb_read_opc (char *buffer, size_t position, vmi_t *value)
+size_t vmb_read_opc (code_t *buffer, size_t position, vmi_t *value)
 {
   *value = vmb_unpack_word (buffer, position);
   return 1;
@@ -227,7 +227,7 @@ size_t vmb_read_opc (char *buffer, size_t position, vmi_t *value)
 
 void test_bytecode0 ()
 {
-  char *buffer = malloc (20);
+  code_t *buffer = malloc (20);
   size_t wcursor = 0, rcursor = 0;
   obj_t *result = NULL;
 
@@ -236,25 +236,25 @@ void test_bytecode0 ()
 
   vm_t vm;
 
-  wcursor += vmb_write_opc (buffer, wcursor, VMI_ISTORE);
+  wcursor += vmb_write_opc (buffer, wcursor, VMI_ILOAD);
   wcursor += vmb_write_int (buffer, wcursor, 2);
-  wcursor += vmb_write_opc (buffer, wcursor, VMI_ISTORE);
+  wcursor += vmb_write_opc (buffer, wcursor, VMI_ILOAD);
   wcursor += vmb_write_int (buffer, wcursor, 3);
   wcursor += vmb_write_opc (buffer, wcursor, VMI_IADD);
 
   rcursor += vmb_read_opc (buffer, rcursor, &opc);
-  printf ("FIRST OPC: %s\n", VMI_NAME (opc));
+  printf (" dbg:FIRST OPC: %s\n", VMI_NAME (opc));
   rcursor += vmb_read_int (buffer, rcursor, &int_value);
-  printf ("FIRST VALUE: %d\n", int_value);
+  printf (" dbg:FIRST VALUE: %d\n", int_value);
   rcursor += vmb_read_opc (buffer, rcursor, &opc);
-  printf ("SECOND OPC: %s\n", VMI_NAME (opc));
+  printf (" dbg:SECOND OPC: %s\n", VMI_NAME (opc));
   rcursor += vmb_read_int (buffer, rcursor, &int_value);
-  printf ("SECOND VALUE: %d\n", int_value);
+  printf (" dbg:SECOND VALUE: %d\n", int_value);
   rcursor += vmb_read_opc (buffer, rcursor, &opc);
-  printf ("THIRD OPC: %s\n", VMI_NAME (opc));
+  printf (" dbg:THIRD OPC: %s\n", VMI_NAME (opc));
 
   rcursor = 0;
-  printf ("VM_RUN() ---- \n");
+  printf ("VM_RUN(0) ---- \n");
 
   vm_init (&vm);
   vm_run (&vm, buffer, wcursor);

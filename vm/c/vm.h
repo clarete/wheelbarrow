@@ -9,33 +9,6 @@
 #define STACK_MAX_SIZE 4096
 
 typedef enum {
-  OBJ_INT,
-  /* OBJ_FLOAT, */
-} obj_type_t;
-
-typedef struct object {
-  obj_type_t type;
-
-  /* Properties used by the GC */
-  short int marked;
-  struct object *next;
-
-  /* Value Container */
-  union {
-    /* OBJ_INT */
-    int32_t intval;
-    /* OBJ_FLOAT */
-    /* float floatval; */
-  };
-} obj_t;
-
-typedef struct {
-  obj_t *stack[STACK_MAX_SIZE];
-  obj_t *objs;
-  int32_t stack_pointer;
-} vm_t;
-
-typedef enum {
   /* Integer Math Ops */
   VMI_IADD,
   VMI_ISUB,
@@ -71,23 +44,55 @@ typedef enum {
   VMIE,
 } vmi_t;
 
+typedef enum {
+  OBJ_INT,
+  /* OBJ_FLOAT, */
+} obj_type_t;
+
+typedef struct object {
+  obj_type_t type;
+
+  /* Properties used by the GC */
+  short int marked;
+  struct object *next;
+
+  /* Value Container */
+  union {
+    /* OBJ_INT */
+    int32_t intval;
+    /* OBJ_FLOAT */
+    /* float floatval; */
+  };
+} obj_t;
+
+typedef struct {
+  obj_t *stack[STACK_MAX_SIZE];
+  obj_t *objs;
+  int32_t stack_pointer;
+
+  obj_t *fp;
+  obj_t *cp;
+  obj_t *sp;
+  code_t *ip;
+} vm_t;
+
 /* What is needed for using the VM */
 void vm_init (vm_t *vm);
-void *vm_run (vm_t *vm, char *b, size_t l);
+void *vm_run (vm_t *vm, code_t *b, size_t l);
 
 /* Stack */
 void vm_push (vm_t *vm, obj_t *i);
 obj_t *vm_pop (vm_t *vm);
 
 /* Bytecode Generator */
-size_t vmb_write_opc (char *b, size_t s, vmi_t v);
-size_t vmb_write_int (char *b, size_t s, int v);
-size_t vmb_write_float (char *b, size_t s, float v);
-size_t vmb_write_string (char *b, size_t s, char *v);
+size_t vmb_write_opc (code_t *b, size_t s, vmi_t v);
+size_t vmb_write_int (code_t *b, size_t s, int v);
+size_t vmb_write_float (code_t *b, size_t s, float v);
+size_t vmb_write_string (code_t *b, size_t s, char *v);
 /* void vmb_write_call (vmfn_t *v); */
 
 /* Bytecode Reader */
-size_t vmb_read_int (char *buffer, size_t position, int *value);
-size_t vmb_read_opc (char *buffer, size_t position, vmi_t *value);
+size_t vmb_read_int (code_t *buffer, size_t position, int *value);
+size_t vmb_read_opc (code_t *buffer, size_t position, vmi_t *value);
 
 #endif  /* VM_H */
