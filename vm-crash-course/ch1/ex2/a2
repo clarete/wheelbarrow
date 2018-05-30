@@ -1,0 +1,34 @@
+#!/usr/bin/env python3
+import sys
+import io
+import struct
+
+OPC = lambda o: {
+    'PUSH': 0x1,
+    'POP':  0x2,
+    'SUM':  0x3,
+    'SUMX': 0x4,
+}[o]
+
+
+def translate(fname):
+    code = io.BytesIO()
+    for line in io.open(fname).read().splitlines():
+        if ' ' in line: opc, arg = line.split()
+        else: opc, arg = line, 0
+        code.write(struct.pack('BB', OPC(opc), int(arg)))
+    code.write(struct.pack('B', 0))
+    code.seek(0)
+    return code.read()
+
+
+def writefile(f, code):
+    io.open(f.replace('.in', '.m2'), 'wb').write(code)
+
+
+def main(fnames):
+    [writefile(f, translate(f)) for f in fnames]
+
+
+if __name__ == '__main__':
+    main(sys.argv[1:])
