@@ -1,0 +1,15 @@
+routine 7 { //  1+2
+  push 1
+  push 2
+  sum
+  ret
+}
+
+routine 0 { // print(7()+10)
+  push 10
+  call 7
+  sum
+  push 1
+  pcall 255
+  ret
+}
