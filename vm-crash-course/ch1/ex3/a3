@@ -24,7 +24,7 @@ def translate(fname):
 
 
 def writefile(f, code):
-    io.open(f.replace('.in', '.m2'), 'wb').write(code)
+    io.open(f.replace('.in', '.m3'), 'wb').write(code)
 
 
 def main(fnames):
