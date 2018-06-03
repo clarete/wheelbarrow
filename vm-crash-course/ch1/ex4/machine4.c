@@ -61,13 +61,14 @@ static const char *errorStr[M2_ERR_END] = {
 
 void mDumpStack (Machine *m);
 
-#define PUSH(m,x)  (*(m)->sp++ = (x))
-#define POP(m)     (*--(m)->sp)
+#define PUSH(m,x)  (*m->sp++ = (x))
+#define POP(m)     (*--m->sp)
 
 void mInit (Machine *m, Word code)
 {
   memset (m->stack, 0, STACK_SIZE * WORD_SIZE);
   m->sp = m->stack;
+  m->fp = m->sp;
   m->ip = code;
   m->bp = m->ip;
 }
@@ -108,9 +109,7 @@ void mReadHeader (Machine *m)
     entryAddr = decode (m->ip++);
     m->symtbl[WTOI (entryId)] = entryAddr;
   }
-
   m->bp = m->ip;
-  m->fp = ((Word*) m->ip);
 }
 
 void mReadOpc (Machine *m, Word *instruction, Word *argument)
@@ -122,37 +121,46 @@ void mReadOpc (Machine *m, Word *instruction, Word *argument)
 void mEval (Machine *m)
 {
   Word instruction, argument;
+  Bytecode *last;
+
+  /* Find the last entry in the bytecode */
+  m->fp = m->sp-1;
+  for (last = m->ip; *last; last++);
+  PUSH (m, m->fp);
+  PUSH (m, last);
 
   m->ip = mSymAddr (m, 0);
 
   while (true) {
+    mDumpStack (m);
+
     mReadOpc (m, &instruction, &argument);
 
     switch (WTOI (instruction)) {
 
     case 0x0:
-      /* printf ("halt\n"); */
+      printf ("halt\n");
       return;           /* HALT */
 
     case OP_PUSH:
-      /* printf ("push %d\n", WTOI (argument)); */
+      printf ("push %d\n", WTOI (argument));
       PUSH (m, argument);
       break;
 
     case OP_POP:
-      /* printf ("pop\n"); */
+      printf ("pop\n");
       (void) POP (m);
       break;
 
     case OP_SUM: {
-      /* printf ("sum\n"); */
+      printf ("sum\n");
       Word b = POP (m);
       Word a = POP (m);
       PUSH (m, ITOW (WTOI (a) + WTOI (b)));
     } break;
 
     case OP_SUMX: {
-      /* printf ("sumx\n"); */
+      printf ("sumx\n");
       uint8_t len = WTOI (POP (m));
       uint8_t total = 0;
       for (int i = 0; i < len; i++) total += WTOI (POP (m));
@@ -160,15 +168,17 @@ void mEval (Machine *m)
     } break;
 
     case OP_PCALL: {
-      /* printf ("pcall %d\n", WTOI (argument)); */
+      printf ("pcall %d\n", WTOI (argument));
       if (WTOI (argument) == 255) primPrint (m);
       else FATAL (M2_ERR_UNKNOWN_PRIMITIVE);
     } break;
 
     case OP_CALL: {
-      /* printf ("call %d\n", WTOI (argument)); */
-      PUSH (m, m->fp);
-      PUSH (m, m->ip);
+      printf ("call %d [IP: %d, FP: %d, SP: %d]\n",
+              WTOI (argument), WTOI (m->ip), WTOI (m->fp), WTOI (m->sp));
+      PUSH (m, ITOW (m->fp));
+      m->fp = m->sp;
+      PUSH (m, ITOW (m->ip));
       m->ip = mSymAddr (m, argument);
     } break;
 
@@ -176,9 +186,12 @@ void mEval (Machine *m)
       Word retval = POP (m);
       Word nextaddr = POP (m);
       Word prevfp = POP (m);
-      /* printf ("ret: %d, %d, %d\n", WTOI (retval), WTOI (nextaddr), WTOI (prevfp)); */
-      m->fp = prevfp;
+      printf ("ret: %d, %d, %d", WTOI (retval), WTOI (nextaddr), WTOI (prevfp));
+      printf (" [IP: %d, FP: %d, SP: %d]\n",
+              WTOI (m->ip), WTOI (m->fp), WTOI (m->sp));
       m->ip = nextaddr;
+      m->sp = m->fp-1;
+      m->fp = prevfp;
       PUSH (m, retval);
     } break;
 
@@ -190,11 +203,10 @@ void mEval (Machine *m)
 void mDumpStack (Machine *m)
 {
   Word *sp;
-  sp = m->sp;
   printf ("[");
-  while (sp-- > m->stack) {
-    printf ("%hhu", WTOI (*sp));
-    if (sp - 1 > m->stack) printf (", ");
+  for (sp = m->sp; sp > m->stack;) {
+    printf ("%hhu", WTOI (*--sp));
+    if (sp > m->stack) printf (", ");
   }
   printf ("]\n");
 }
@@ -211,7 +223,7 @@ Error loadFile (const char *fname, Bytecode **buffer, long *fsize)
   rewind (f);
 
   /* Allocate buffer for code */
-  *buffer = (Bytecode *) calloc (*fsize, WORD_SIZE);
+  *buffer = (Bytecode *) calloc (*fsize, sizeof (Bytecode));
   if (buffer == NULL) return M2_ERR_ALLOC_MEM;
 
   /* Read bytecode into memory */

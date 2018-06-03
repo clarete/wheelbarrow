@@ -5,7 +5,7 @@ routine 7 { // 5+7=12
   ret
 }
 
-routine 0 { // print(7()+3()+3)=15
+routine 0 { // print(7()+3()+55)=70
   push 3
   call 7
   sum
@@ -17,6 +17,6 @@ routine 0 { // print(7()+3()+3)=15
 }
 
 routine 3 {
-  push 1
+  push 55
   ret
 }
