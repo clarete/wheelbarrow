@@ -4,9 +4,8 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-#define WORD_SIZE sizeof (uint16_t)
-#define OPERATOR_SIZE sizeof (uint8_t)
-#define OPERAND_SIZE sizeof (uint8_t)
+#define WORD_SIZE  sizeof (Word)
+#define STACK_SIZE 2048
 
 #define OP_PUSH  0x1
 #define OP_POP   0x2
@@ -14,17 +13,21 @@
 #define OP_SUMX  0x4
 #define OP_PCALL 0x5
 
-#define STACK_SIZE 2048
+#define WTOI(x) ((uint8_t) (uintptr_t) (x))
+#define ITOW(x) ((Word) (uintptr_t) (x))
 
 #define ERRMSG(e) (errorStr[e])
 
 #define FATAL(e) do { printf ("%s\n", ERRMSG (e)); exit (EXIT_FAILURE); } while (0);
 
+typedef void* Word;
+
+typedef uint8_t Bytecode;
 
 typedef struct {
-  uint8_t stack[STACK_SIZE];
-  uint8_t *sp;
-  uint8_t *ip;
+  Word stack[STACK_SIZE];
+  Word *sp;
+  Bytecode *ip;
 } Machine;
 
 typedef enum {
@@ -50,41 +53,54 @@ static const char *errorStr[M2_ERR_END] = {
   [M2_ERR_WRONG_ARITY] = "Wrong arity",
 };
 
-#define NEXT(m)    (*(m)->ip++)
 #define PUSH(m,x)  (*(m)->sp++ = (x))
 #define POP(m)     (*--(m)->sp)
 
-void mInit (Machine *m, uint8_t *code)
+void mInit (Machine *m, Word code)
 {
-  memset (m->stack, 0, sizeof (uint8_t) * STACK_SIZE);
+  memset (m->stack, 0, STACK_SIZE * WORD_SIZE);
   m->sp = m->stack;
   m->ip = code;
 }
 
 void primPrint (Machine *m)
 {
-  uint8_t obj, argc = POP (m);
-  if (argc != 1) FATAL (M2_ERR_WRONG_ARITY);
+  Word obj, argc = POP (m);
+  if (WTOI (argc) != 1) FATAL (M2_ERR_WRONG_ARITY);
 
   obj = POP (m);
 
-  printf ("%hhu\n", obj);
+  printf ("%hhu\n", WTOI (obj));
 
   PUSH (m, 0);
 }
 
+Word decode (Bytecode *b)
+{
+  uint8_t word = 0;
+  word += WTOI (b[0]);
+  word += WTOI (b[1]) << 8;
+  return ITOW (word);
+}
+
+void mReadOpc (Machine *m, Word *instruction, Word *argument)
+{
+  *instruction = decode (m->ip++);
+  *argument = decode (m->ip++);
+}
+
 void mEval (Machine *m)
 {
-  uint8_t instruction, argument;
+  Word instruction, argument;
   while (true) {
-    instruction = NEXT (m);
-    argument = NEXT (m);
-    switch (instruction) {
+    mReadOpc (m, &instruction, &argument);
+
+    switch (WTOI (instruction)) {
 
     case 0x0: return;           /* HALT */
 
     case OP_PUSH:
-      /* printf ("push %d\n", argument); */
+      /* printf ("[0x%x] push %d\n", WTOI (instruction), WTOI (argument)); */
       PUSH (m, argument);
       break;
 
@@ -95,21 +111,21 @@ void mEval (Machine *m)
 
     case OP_SUM: {
       /* printf ("sum\n"); */
-      uint8_t b = POP (m);
-      uint8_t a = POP (m);
-      PUSH (m, a + b);
+      Word b = POP (m);
+      Word a = POP (m);
+      PUSH (m, ITOW (WTOI (a) + WTOI (b)));
     } break;
 
     case OP_SUMX: {
       /* printf ("sumx\n"); */
-      uint8_t len = POP (m);
+      uint8_t len = WTOI (POP (m));
       uint8_t total = 0;
-      for (int i = 0; i < len; i++) total += POP (m);
-      PUSH (m, total);
+      for (int i = 0; i < len; i++) total += WTOI (POP (m));
+      PUSH (m, ITOW (total));
     } break;
 
     case OP_PCALL: {
-      if (argument == 255) primPrint (m);
+      if (WTOI (argument) == 255) primPrint (m);
       else FATAL (M2_ERR_UNKNOWN_PRIMITIVE);
     } break;
 
@@ -120,17 +136,17 @@ void mEval (Machine *m)
 
 void mDumpStack (Machine *m)
 {
-  uint8_t *sp;
+  Word *sp;
   sp = m->sp;
   printf ("[");
   while (sp-- > m->stack) {
-    printf ("%hhu", *sp);
-    if (*(sp - 1)) printf (", ");
+    printf ("%hhu", WTOI (*sp));
+    if (sp - 1 > m->stack) printf (", ");
   }
   printf ("]\n");
 }
 
-Error loadFile (const char *fname, uint8_t **buffer, long *fsize)
+Error loadFile (const char *fname, Bytecode **buffer, long *fsize)
 {
   long read;
   FILE *f = fopen (fname, "rb");
@@ -142,7 +158,7 @@ Error loadFile (const char *fname, uint8_t **buffer, long *fsize)
   rewind (f);
 
   /* Allocate buffer for code */
-  *buffer = (uint8_t *) calloc (*fsize, sizeof (uint8_t));
+  *buffer = (Bytecode *) calloc (*fsize, WORD_SIZE);
   if (buffer == NULL) return M2_ERR_ALLOC_MEM;
 
   /* Read bytecode into memory */
@@ -153,17 +169,11 @@ Error loadFile (const char *fname, uint8_t **buffer, long *fsize)
   return M2_OK;
 }
 
-void printBuffer (const uint8_t *data, long fsize)
-{
-  for (long i = 0; i < fsize; i++) printf ("%x ", (unsigned int) data[i]);
-  printf ("\n");
-}
-
 int main (int argc, char **argv)
 {
   Machine m;
   Error e;
-  uint8_t *buffer = NULL;
+  Bytecode *buffer = NULL;
   long bsize;
 
   if (argc != 2) FATAL (M2_ERR_USAGE);
@@ -171,8 +181,6 @@ int main (int argc, char **argv)
   if ((e = loadFile (argv[1], &buffer, &bsize)) != M2_OK) FATAL (e);
 
   if (buffer == NULL) FATAL (e);
-
-  /* printBuffer (buffer, bsize); */
 
   mInit (&m, buffer);
   mEval (&m);
