@@ -113,7 +113,7 @@ def translate(fname):
 
 
 def writefile(f, code):
-    if code: io.open(f.replace('.in', '.m2'), 'wb').write(code)
+    if code: io.open(f.replace('.in', '.m4'), 'wb').write(code)
 
 
 def main(fnames):
