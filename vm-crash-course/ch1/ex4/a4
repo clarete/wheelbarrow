@@ -105,6 +105,9 @@ class Assembler:
         for _, routineBody in routines:
             for instruction, argument in routineBody:
                 self.writeOpc(instruction, argument)
+        # Halt instruction
+        self.writeByte(routineId)
+        self.writeByte(routineId)
         return self.dump()
 
 
