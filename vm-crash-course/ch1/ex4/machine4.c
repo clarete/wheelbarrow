@@ -132,35 +132,35 @@ void mEval (Machine *m)
   m->ip = mSymAddr (m, 0);
 
   while (true) {
-    mDumpStack (m);
+    /* mDumpStack (m); */
 
     mReadOpc (m, &instruction, &argument);
 
     switch (WTOI (instruction)) {
 
     case 0x0:
-      printf ("halt\n");
+      /* printf ("halt\n"); */
       return;           /* HALT */
 
     case OP_PUSH:
-      printf ("push %d\n", WTOI (argument));
+      /* printf ("push %d\n", WTOI (argument)); */
       PUSH (m, argument);
       break;
 
     case OP_POP:
-      printf ("pop\n");
+      /* printf ("pop\n"); */
       (void) POP (m);
       break;
 
     case OP_SUM: {
-      printf ("sum\n");
+      /* printf ("sum\n"); */
       Word b = POP (m);
       Word a = POP (m);
       PUSH (m, ITOW (WTOI (a) + WTOI (b)));
     } break;
 
     case OP_SUMX: {
-      printf ("sumx\n");
+      /* printf ("sumx\n"); */
       uint8_t len = WTOI (POP (m));
       uint8_t total = 0;
       for (int i = 0; i < len; i++) total += WTOI (POP (m));
@@ -168,14 +168,14 @@ void mEval (Machine *m)
     } break;
 
     case OP_PCALL: {
-      printf ("pcall %d\n", WTOI (argument));
+      /* printf ("pcall %d\n", WTOI (argument)); */
       if (WTOI (argument) == 255) primPrint (m);
       else FATAL (M2_ERR_UNKNOWN_PRIMITIVE);
     } break;
 
     case OP_CALL: {
-      printf ("call %d [IP: %d, FP: %d, SP: %d]\n",
-              WTOI (argument), WTOI (m->ip), WTOI (m->fp), WTOI (m->sp));
+      /* printf ("call %d [IP: %d, FP: %d, SP: %d]\n", */
+      /*         WTOI (argument), WTOI (m->ip), WTOI (m->fp), WTOI (m->sp)); */
       PUSH (m, ITOW (m->fp));
       m->fp = m->sp;
       PUSH (m, ITOW (m->ip));
@@ -186,9 +186,9 @@ void mEval (Machine *m)
       Word retval = POP (m);
       Word nextaddr = POP (m);
       Word prevfp = POP (m);
-      printf ("ret: %d, %d, %d", WTOI (retval), WTOI (nextaddr), WTOI (prevfp));
-      printf (" [IP: %d, FP: %d, SP: %d]\n",
-              WTOI (m->ip), WTOI (m->fp), WTOI (m->sp));
+      /* printf ("ret: %d, %d, %d", WTOI (retval), WTOI (nextaddr), WTOI (prevfp)); */
+      /* printf (" [IP: %d, FP: %d, SP: %d]\n", */
+      /*         WTOI (m->ip), WTOI (m->fp), WTOI (m->sp)); */
       m->ip = nextaddr;
       m->sp = m->fp-1;
       m->fp = prevfp;
