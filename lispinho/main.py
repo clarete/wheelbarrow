@@ -19,19 +19,27 @@ class Token:
     def __init__(self, _type, value=None):
         self._type = _type
         self.value = value
-
     def __repr__(self):
         return "Token({}, {})".format(self._type, repr(self.value))
-
     def __eq__(self, other):
         return (isinstance(other, self.__class__) and
                 other._type == self._type and
                 other.value == self.value)
 
 
+class Atom:
+    def __init__(self, name):
+        self.name = name
+    def __eq__(self, other):
+        return (isinstance(other, self.__class__) and
+                other.name == self.name)
+
+
 class Nil:
     def __repr__(self):
         return 'Nil'
+    def __eq__(self, other):
+        return isinstance(other, self.__class__)
 
 
 nil = Nil()
@@ -83,7 +91,10 @@ class Parser:
         return True
 
     def returnCurrentAndMoveNext(self):
-        value = self.token.value
+        # This quietly converts atoms to Atom instances
+        value = (self.testToken(TokenType.ATOM)
+                 and Atom(self.token.value)
+                 or self.token.value)
         self.nextToken()
         return value
 
@@ -119,6 +130,38 @@ class Parser:
 
 def parse(tokens):
     return Parser(tokens).parse()
+
+
+def car(l): return l[0]
+
+
+def cdr(l): return l[1]
+
+
+def evalList(v, env):
+    if isinstance(v, Nil): return []
+    out = [evalValue(car(v), env)]
+    out.extend(evalList(cdr(v), env))
+    return out
+
+
+def applyCons(v, env):
+    f = evalValue(car(v), env)
+    args = evalList(cdr(v), env)
+    return f(args)
+
+
+def evalValue(v, env):
+    if isinstance(v, int): return v
+    elif isinstance(v, str): return v
+    elif isinstance(v, Atom): return env[v.name]
+    elif isinstance(v, list): return applyCons(v, env)
+
+
+def evaluate(code):
+    return evalValue(Parser(code).parse(), {
+        '+': sum
+    })
 
 
 def main():
@@ -172,31 +215,52 @@ def test_tokenizer():
 def test_parser():
     run = lambda c: parse(c)
 
-    pprint(run('1'))
+    # pprint(run('1'))
     assert(run('1')                          == 1)
 
-    pprint(run('"test"'))
+    # pprint(run('"test"'))
     assert(run('"test"')                     == 'test')
 
-    pprint(run('atom'))
-    assert(run('atom')                       == 'atom')
+    # pprint(run('atom'))
+    assert(run('atom')                       == Atom('atom'))
 
-    pprint(run('(a)'))
-    assert(run('(a)')                        == ['a', nil])
+    # pprint(run('(a)'))
+    assert(run('(a)')                        == [Atom('a'), nil])
 
-    pprint(run('(+ 2 (* 3 5))'))
-    assert(run('(+ 2 (* 3 5))')              == ['+', [2, [['*', [3, [5, nil]]], nil]]])
+    # pprint(run('(+ 2 (* 3 5))'))
+    assert(run('(+ 2 (* 3 5))')              == [Atom('+'), [2, [[Atom('*'), [3, [5, nil]]], nil]]])
 
-    pprint(run('(+ 2 (* 3 5) (* -1))'))
-    assert(run('(+ 2 (* 3 5) (* -1))')       == ['+', [2, [['*', [3, [5, nil]]], [['*', [-1, nil]], nil]]]])
+    # pprint(run('(+ 2 (* 3 5) (* -1))'))
+    assert(run('(+ 2 (* 3 5) (* -1))')       == [Atom('+'), [2, [[Atom('*'), [3, [5, nil]]],
+                                                                 [[Atom('*'), [-1, nil]], nil]]]])
 
-    pprint(run('(first (list 1 (+ 2 3) 9))'))
-    assert(run('(first (list 1 (+ 2 3) 9))') == ['first', [['list', [1, [['+', [2, [3, nil]]], [9, nil]]]], nil]])
+    # pprint(run('(first (list 1 (+ 2 3) 9))'))
+    assert(run('(first (list 1 (+ 2 3) 9))') == [Atom('first'), [[Atom('list'),
+                                                            [1, [[Atom('+'), [2, [3, nil]]],
+                                                                 [9, nil]]]], nil]])
+
+
+def test_evaluator():
+    run = lambda c: evaluate(c)
+
+    # pprint(run('1'))
+    assert(run('1')                          == 1)
+
+    # pprint(run('"test"'))
+    assert(run('"test"')                     == 'test')
+
+    # TODO: Error handling
+    # pprint(run('atom'))
+    # assert(run('atom')                       == Atom('atom'))
+
+    # pprint(run('(+ 3 2)'))
+    assert(run('(+ 3 2)')                      == 5)
 
 
 def test():
     test_tokenizer()
     test_parser()
+    test_evaluator()
 
 
 if __name__ == '__main__':
