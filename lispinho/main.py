@@ -140,12 +140,15 @@ def car(l): return l[0]
 def cdr(l): return l[1]
 
 
+def _flattenCons(v, env):
+    if isinstance(v, Nil): return []
+    out = [evalValue(car(v), env)]
+    out.extend(_flattenCons(cdr(v), env))
+    return out
+
+
 def primSum(args, env):
-    tmp = args; total = 0
-    while tmp != nil:
-        total += tmp[0]
-        tmp = tmp[1]
-    return total
+    return sum(_flattenCons(args, env))
 
 
 def evalList(v, env):
