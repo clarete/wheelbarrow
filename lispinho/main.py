@@ -151,15 +151,14 @@ def primSum(args, env):
     return sum(_flattenCons(args, env))
 
 
-def evalList(v, env):
-    if isinstance(v, Nil): return nil
-    return [evalValue(car(v), env), evalList(cdr(v), env)]
+def primQuote(args, env):
+    return car(args)
 
 
 def applyCons(v, env):
+    assert(isinstance(car(v), Atom))
     f = evalValue(car(v), env)
-    args = evalList(cdr(v), env)
-    return f(args, env)
+    return f(cdr(v), env)
 
 
 def evalValue(v, env):
@@ -171,7 +170,8 @@ def evalValue(v, env):
 
 def evaluate(code):
     return evalValue(Parser(code).parse(), {
-        '+': primSum
+        '+': primSum,
+        'quote': primQuote,
     })
 
 
@@ -265,7 +265,10 @@ def test_evaluator():
     # assert(run('atom')                       == Atom('atom'))
 
     # pprint(run('(+ 3 2)'))
-    assert(run('(+ 3 2)')                      == 5)
+    assert(run('(+ 3 2)')                    == 5)
+
+    # pprint(run('(quote a)'))
+    assert(run('(quote a)')                  == Atom('a'))
 
 
 def test():
