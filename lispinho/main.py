@@ -30,6 +30,8 @@ class Token:
 class Atom:
     def __init__(self, name):
         self.name = name
+    def __repr__(self):
+        return "Atom({})".format(repr(self.name))
     def __eq__(self, other):
         return (isinstance(other, self.__class__) and
                 other.name == self.name)
