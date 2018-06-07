@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# Licensed under GPLv3: https://www.gnu.org/licenses/gpl.txt
+# Commit history available here: https://github.com/clarete/wheelbarrow/blob/master/lispinho/main.py
+# no dependencies, may also work with python2
 import enum
 from pprint import pprint
 
