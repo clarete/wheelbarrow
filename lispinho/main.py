@@ -138,17 +138,23 @@ def car(l): return l[0]
 def cdr(l): return l[1]
 
 
+def primSum(args, env):
+    tmp = args; total = 0
+    while tmp != nil:
+        total += tmp[0]
+        tmp = tmp[1]
+    return total
+
+
 def evalList(v, env):
-    if isinstance(v, Nil): return []
-    out = [evalValue(car(v), env)]
-    out.extend(evalList(cdr(v), env))
-    return out
+    if isinstance(v, Nil): return nil
+    return [evalValue(car(v), env), evalList(cdr(v), env)]
 
 
 def applyCons(v, env):
     f = evalValue(car(v), env)
     args = evalList(cdr(v), env)
-    return f(args)
+    return f(args, env)
 
 
 def evalValue(v, env):
@@ -160,7 +166,7 @@ def evalValue(v, env):
 
 def evaluate(code):
     return evalValue(Parser(code).parse(), {
-        '+': sum
+        '+': primSum
     })
 
 
