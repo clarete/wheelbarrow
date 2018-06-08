@@ -158,6 +158,15 @@ def primQuote(args, env):
     return car(args)
 
 
+def primCond(args, env):
+    head, tail = car(args), cdr(args)
+    while head != nil:
+        cond = evalValue(car(head), env)
+        if cond != nil: return evalValue(car(cdr(head)), env)
+        head, tail = car(tail), cdr(tail)
+    return nil
+
+
 def applyCons(v, env):
     assert(isinstance(car(v), Atom))
     f = evalValue(car(v), env)
@@ -173,8 +182,10 @@ def evalValue(v, env):
 
 def evaluate(code):
     return evalValue(Parser(code).parse(), {
+        'nil': nil,
         '+': primSum,
         'quote': primQuote,
+        'cond': primCond,
     })
 
 
@@ -272,6 +283,9 @@ def test_evaluator():
 
     # pprint(run('(quote a)'))
     assert(run('(quote a)')                  == Atom('a'))
+
+    # pprint(run('(cond (nil 1) (nil 2) (1 3))'))
+    assert(run('(cond (nil 1) (nil 2) (1 3))') == 3)
 
 
 def test():
