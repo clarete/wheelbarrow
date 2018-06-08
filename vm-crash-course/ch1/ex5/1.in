@@ -1,0 +1,17 @@
+routine 0 { // print(1(10, 20)+30)=60
+  push 10
+  push 20
+  call 1
+  push 30
+  sum
+  push 1
+  pcall 255
+  ret
+}
+
+routine 1 {
+  pusharg 0
+  pusharg 1
+  sum
+  ret
+}

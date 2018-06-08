@@ -1,0 +1,129 @@
+#!/usr/bin/env python3
+import sys
+import io
+import struct
+
+OPC = lambda o: OPCS[o]
+
+OPCS = {
+    'push':    0x1,
+    'pop':     0x2,
+    'sum':     0x3,
+    'sumx':    0x4,
+    'pcall':   0x5,
+    'call':    0x6,
+    'ret':     0x7,
+    'pusharg': 0x8,
+    'mul':     0x20,
+}
+
+OPCS_WITH_ARGS = ['push', 'pcall', 'call', 'pusharg']
+
+
+class Assembler:
+
+    def __init__(self, source):
+        self.cursor = 0
+        self.source = source
+        self.tokens = self.tokenize()
+        self.code = io.BytesIO()
+
+    def tokenize(self):
+        output = []
+        # Split by lines but add the '\n' back as a token
+        for i in self.source.splitlines(): output.extend(i.split() + ['\n'])
+        return output
+
+    def getToken(self):
+        if self.cursor >= len(self.tokens): return 'EOF'
+        return self.tokens[self.cursor]
+
+    def currentToken(self):
+        token = self.getToken()
+        if token == '//':
+            while token != '\n':
+                self.cursor += 1
+                token = self.getToken()
+        while token == '\n':
+            self.cursor += 1
+            token = self.currentToken()
+        return token
+
+    def nextToken(self):
+        self.cursor += 1
+        return self.currentToken()
+
+    def peekToken(self, count=1):
+        return self.tokens[self.cursor + count]
+
+    def readInstruction(self):
+        if self.currentToken() in OPCS_WITH_ARGS:
+            return [self.currentToken(), self.nextToken()]
+        else:
+            return [self.currentToken(), 0]
+
+    def readInstructions(self):
+        instructions = []
+        while self.currentToken() != '}':
+            instructions.append(self.readInstruction())
+            self.nextToken()
+        self.nextToken()    # Skip the '}' token
+        return instructions
+
+    def readRoutine(self):
+        assert self.currentToken() == 'routine', "Keyword `routine' expected"
+        assert self.peekToken().isdigit(), "Routine ID must be an integer"
+        routineId = int(self.nextToken()) # safe to continue after above check
+        assert self.nextToken() == '{', "Invalid routine header. Couldn't find {"
+        self.nextToken()     # skip over the `{' that was just checked
+        return [int(routineId), self.readInstructions()]
+
+    def read(self):
+        routines = []
+        while self.currentToken() != 'EOF':
+            routines.append(self.readRoutine())
+        return routines
+
+    def writeByte(self, value):
+        self.code.write(struct.pack('B', value))
+
+    def writeOpc(self, opc, arg=0):
+        self.code.write(struct.pack('BB', OPC(opc), int(arg)))
+
+    def dump(self):
+        self.code.seek(0)
+        return self.code.read()
+
+    def translate(self):
+        routines = self.read()
+        # Write header
+        self.writeByte(len(routines))
+        headerCursor = 0
+        for routineId, routineBody in routines:
+            self.writeByte(routineId)
+            self.writeByte(headerCursor)
+            headerCursor += len(routineBody * 2)
+        # Write body
+        for _, routineBody in routines:
+            for instruction, argument in routineBody:
+                self.writeOpc(instruction, argument)
+        # Halt instruction
+        self.writeByte(routineId)
+        self.writeByte(routineId)
+        return self.dump()
+
+
+def translate(fname):
+    return Assembler(io.open(fname).read()).translate()
+
+
+def writefile(f, code):
+    if code: io.open(f.replace('.in', '.m5'), 'wb').write(code)
+
+
+def main(fnames):
+    [writefile(f, translate(f)) for f in fnames]
+
+
+if __name__ == '__main__':
+    main(sys.argv[1:])

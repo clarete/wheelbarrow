@@ -1,0 +1,26 @@
+routine 0 { // print(2(1(2, 3), 1(3, 4)))=18
+  push 4
+  push 3
+  call 1
+  push 3
+  push 2
+  call 1
+  call 2
+  push 1
+  pcall 255
+  ret
+}
+
+routine 1 { // a * b
+  pusharg 0
+  pusharg 1
+  mul
+  ret
+}
+
+routine 2 { // a * b
+  pusharg 0
+  pusharg 1
+  sum
+  ret
+}

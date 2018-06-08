@@ -1,0 +1,6 @@
+routine 0 { // print(42)
+  push 42
+  push 1
+  pcall 255
+  ret
+}
