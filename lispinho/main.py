@@ -3,6 +3,7 @@
 # Commit history available here: https://github.com/clarete/wheelbarrow/blob/master/lispinho/main.py
 # no dependencies, may also work with python2
 import enum
+import readline
 from pprint import pprint
 
 VALID_ATOM_CHARS = ('_', '-', '+', '*', '/', '>', '<')
@@ -167,30 +168,56 @@ def primCond(args, env):
     return nil
 
 
+def primLabel(args, env):
+    assert(isinstance(car(args), Atom))
+    value = evalValue(car(cdr(args)), env)
+    env[car(args).name] = value
+    return value
+
+
 def applyCons(v, env):
     assert(isinstance(car(v), Atom))
     f = evalValue(car(v), env)
     return f(cdr(v), env)
 
 
+def lookup(env, name):
+    try: return env[name]
+    except KeyError: pass
+    raise NameError('Atom `{}\' is not defined'.format(name))
+
+
 def evalValue(v, env):
     if isinstance(v, int): return v
     elif isinstance(v, str): return v
-    elif isinstance(v, Atom): return env[v.name]
+    elif isinstance(v, Atom): return lookup(env, v.name)
     elif isinstance(v, list): return applyCons(v, env)
 
 
-def evaluate(code):
-    return evalValue(Parser(code).parse(), {
-        'nil': nil,
-        '+': primSum,
-        'quote': primQuote,
-        'cond': primCond,
-    })
+primFuncs = {
+    'nil': nil,
+    '+': primSum,
+    'quote': primQuote,
+    'cond': primCond,
+    'label': primLabel,
+}
+
+
+def evaluate(code, env):
+    return evalValue(Parser(code).parse(), env)
+
+
+def repl():
+    env = primFuncs
+    while True:
+        userInput = input("> ")
+        if not userInput: continue
+        print(repr(evaluate(userInput, env)))
 
 
 def main():
-    pass
+    try: repl()
+    except EOFError: print()
 
 
 def test_tokenizer():
@@ -266,7 +293,7 @@ def test_parser():
 
 
 def test_evaluator():
-    run = lambda c: evaluate(c)
+    run = lambda c: evaluate(c, primFuncs)
 
     # pprint(run('1'))
     assert(run('1')                          == 1)
@@ -287,6 +314,9 @@ def test_evaluator():
     # pprint(run('(cond (nil 1) (nil 2) (1 3))'))
     assert(run('(cond (nil 1) (nil 2) (1 3))') == 3)
 
+    # pprint(run('(label foo 1)'))
+    assert(run('(label foo 1)') == 1)
+
 
 def test():
     test_tokenizer()
@@ -296,3 +326,4 @@ def test():
 
 if __name__ == '__main__':
     test()
+    main()
