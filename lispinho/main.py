@@ -16,7 +16,8 @@ class TokenType(enum.Enum):
      INTEGER,
      STRING,
      DOT,
-    ) = range(6)
+     END,
+    ) = range(7)
 
 
 class Token:
@@ -87,6 +88,7 @@ def tokenize(code):
             yield Token(TokenType.ATOM, code[d:i])
             continue
         i += 1
+    yield Token(TokenType.END)
 
 
 class Parser:
@@ -245,22 +247,24 @@ def main():
 def test_tokenizer():
     run = lambda c: list(tokenize(c))
 
-    assert(run('1')                          == [Token(TokenType.INTEGER, 1)])
+    assert(run('1')                          == [Token(TokenType.INTEGER, 1), Token(TokenType.END, None)])
 
-    assert(run('-1')                         == [Token(TokenType.INTEGER, -1)])
+    assert(run('-1')                         == [Token(TokenType.INTEGER, -1), Token(TokenType.END, None)])
 
-    assert(run('test')                       == [Token(TokenType.ATOM, 'test')])
+    assert(run('test')                       == [Token(TokenType.ATOM, 'test'), Token(TokenType.END, None)])
 
-    assert(run('"test"')                     == [Token(TokenType.STRING, 'test')])
+    assert(run('"test"')                     == [Token(TokenType.STRING, 'test'), Token(TokenType.END, None)])
 
     assert(run('()')                         == [Token(TokenType.OPEN_PAR, None),
-                                                 Token(TokenType.CLOSE_PAR, None)])
+                                                 Token(TokenType.CLOSE_PAR, None),
+                                                 Token(TokenType.END, None)])
 
     assert(run('(a b c)')                    == [Token(TokenType.OPEN_PAR, None),
                                                  Token(TokenType.ATOM, 'a'),
                                                  Token(TokenType.ATOM, 'b'),
                                                  Token(TokenType.ATOM, 'c'),
-                                                 Token(TokenType.CLOSE_PAR, None)])
+                                                 Token(TokenType.CLOSE_PAR, None),
+                                                 Token(TokenType.END, None)])
 
     assert(run('(first (+ 2 3))')            == [Token(TokenType.OPEN_PAR, None),
                                                  Token(TokenType.ATOM, 'first'),
@@ -269,7 +273,8 @@ def test_tokenizer():
                                                  Token(TokenType.INTEGER, 2),
                                                  Token(TokenType.INTEGER, 3),
                                                  Token(TokenType.CLOSE_PAR, None),
-                                                 Token(TokenType.CLOSE_PAR, None)])
+                                                 Token(TokenType.CLOSE_PAR, None),
+                                                 Token(TokenType.END, None)])
 
     assert(run('(first (list 1 (+ 2 3) 9))') == [Token(TokenType.OPEN_PAR, None),
                                                  Token(TokenType.ATOM, 'first'),
@@ -283,7 +288,8 @@ def test_tokenizer():
                                                  Token(TokenType.CLOSE_PAR, None),
                                                  Token(TokenType.INTEGER, 9),
                                                  Token(TokenType.CLOSE_PAR, None),
-                                                 Token(TokenType.CLOSE_PAR, None)])
+                                                 Token(TokenType.CLOSE_PAR, None),
+                                                 Token(TokenType.END, None)])
 
 
 def test_parser():
