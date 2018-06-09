@@ -40,6 +40,18 @@ class Atom:
         return (isinstance(other, self.__class__) and
                 other.name == self.name)
 
+class Lambda:
+    def __init__(self, arglist, body):
+        self.arglist = arglist
+        self.body = body
+    def __call__(self, args, env):
+        assert(len(self.arglist) == len(args))
+        argEnv = env.copy()
+        for i, arg in enumerate(self.arglist):
+            if arg == nil: break
+            argEnv[arg.name] = args[i]
+        return car(_flattenCons(self.body, argEnv))
+
 
 class Nil:
     def __repr__(self):
@@ -175,7 +187,15 @@ def primLabel(args, env):
     return value
 
 
-def applyCons(v, env):
+def primProgn(args, env):
+    return _flattenCons(args, env)[-1]
+
+
+def primLambda(args, env):
+    return Lambda(car(args), cdr(args))
+
+
+def evalCons(v, env):
     assert(isinstance(car(v), Atom))
     f = evalValue(car(v), env)
     return f(cdr(v), env)
@@ -191,7 +211,7 @@ def evalValue(v, env):
     if isinstance(v, int): return v
     elif isinstance(v, str): return v
     elif isinstance(v, Atom): return lookup(env, v.name)
-    elif isinstance(v, list): return applyCons(v, env)
+    elif isinstance(v, list): return evalCons(v, env)
 
 
 primFuncs = {
@@ -200,6 +220,8 @@ primFuncs = {
     'quote': primQuote,
     'cond': primCond,
     'label': primLabel,
+    'progn': primProgn,
+    'lambda': primLambda,
 }
 
 
@@ -316,6 +338,11 @@ def test_evaluator():
 
     # pprint(run('(label foo 1)'))
     assert(run('(label foo 1)') == 1)
+
+    # pprint(run('(progn (label foo (lambda (x) (+ x 1)))'
+    #            '       (foo 2))'))
+    assert(run('(progn (label foo (lambda (x) (+ x 1)))'
+               '       (foo 2))') == 3)
 
 
 def test():
