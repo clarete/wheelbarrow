@@ -12,12 +12,13 @@ VALID_ATOM_CHARS = ('_', '-', '+', '*', '/', '>', '<')
 class TokenType(enum.Enum):
     (OPEN_PAR,
      CLOSE_PAR,
+     QUOTE,
      ATOM,
      INTEGER,
      STRING,
      DOT,
      END,
-    ) = range(7)
+    ) = range(8)
 
 
 class Token:
@@ -71,6 +72,7 @@ def tokenize(code):
         if c() is None: break
         elif c() == '(': yield Token(TokenType.OPEN_PAR)
         elif c() == ')': yield Token(TokenType.CLOSE_PAR)
+        elif c() == "'": yield Token(TokenType.QUOTE)
         elif c().isdigit() or (c() == '-' and c(1) and c(1).isdigit()):
             d = i
             if c() == '-': i += 1
@@ -135,6 +137,8 @@ class Parser:
     def parseValue(self):
         if self.matchToken(TokenType.OPEN_PAR):
             return self.parseCons()
+        if self.matchToken(TokenType.QUOTE):
+            return [Atom('quote'), [self.parseValue(), nil]]
         elif self.testToken(TokenType.INTEGER):
             return self.returnCurrentAndMoveNext()
         elif self.testToken(TokenType.ATOM):
@@ -255,6 +259,10 @@ def test_tokenizer():
 
     assert(run('"test"')                     == [Token(TokenType.STRING, 'test'), Token(TokenType.END, None)])
 
+    assert(run("'test")                      == [Token(TokenType.QUOTE, None),
+                                                 Token(TokenType.ATOM, 'test'),
+                                                 Token(TokenType.END, None)])
+
     assert(run('()')                         == [Token(TokenType.OPEN_PAR, None),
                                                  Token(TokenType.CLOSE_PAR, None),
                                                  Token(TokenType.END, None)])
@@ -318,6 +326,8 @@ def test_parser():
     assert(run('(first (list 1 (+ 2 3) 9))') == [Atom('first'), [[Atom('list'),
                                                             [1, [[Atom('+'), [2, [3, nil]]],
                                                                  [9, nil]]]], nil]])
+
+    assert(run("'test")                      == [Atom('quote'), [Atom('test'), nil]])
 
 
 def test_evaluator():
