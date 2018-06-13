@@ -2,6 +2,7 @@
 # Licensed under GPLv3: https://www.gnu.org/licenses/gpl.txt
 # Commit history available here: https://github.com/clarete/wheelbarrow/blob/master/lispinho/main.py
 # no dependencies, may also work with python2
+from __future__ import print_function
 import enum
 import readline
 from pprint import pprint
@@ -38,6 +39,8 @@ class Atom:
         self.name = name
     def __repr__(self):
         return "Atom({})".format(repr(self.name))
+    def __str__(self):
+        return self.name
     def __eq__(self, other):
         return (isinstance(other, self.__class__) and
                 other.name == self.name)
@@ -57,7 +60,7 @@ class Lambda:
 
 class Nil:
     def __repr__(self):
-        return 'Nil'
+        return 'nil'
     def __eq__(self, other):
         return isinstance(other, self.__class__)
 
@@ -235,12 +238,28 @@ def evaluate(code, env):
     return evalValue(Parser(code).parse(), env)
 
 
+def printlist(l, end=' '):
+    head, tail = car(l), cdr(l)
+    print('(', end='')
+    while head != nil:
+        printobj(head, end='' if tail == nil else ' ')
+        if tail == nil: break
+        head, tail = car(tail), cdr(tail)
+    print(')', end=end)
+
+
+def printobj(obj, end=''):
+    if isinstance(obj, list): printlist(obj, end)
+    else: print(obj, end=end)
+
+
 def repl():
     env = primFuncs
     while True:
         userInput = input("> ")
         if not userInput: continue
-        print(repr(evaluate(userInput, env)))
+        printobj(evaluate(userInput, env))
+        print()
 
 
 def main():
