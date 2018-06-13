@@ -73,6 +73,7 @@ def tokenize(code):
     c = lambda n=0: (i+n) < len(code) and code[i+n] or None
     while True:
         if c() is None: break
+        elif c().isspace(): pass
         elif c() == '(': yield Token(TokenType.OPEN_PAR)
         elif c() == ')': yield Token(TokenType.CLOSE_PAR)
         elif c() == "'": yield Token(TokenType.QUOTE)
@@ -92,6 +93,8 @@ def tokenize(code):
             while c() and (c().isalnum() or c() in VALID_ATOM_CHARS): i += 1
             yield Token(TokenType.ATOM, code[d:i])
             continue
+        else:
+            raise SyntaxError("Unexpected char `{}'".format(c()))
         i += 1
     yield Token(TokenType.END)
 
@@ -315,6 +318,12 @@ def test_tokenizer():
                                                  Token(TokenType.CLOSE_PAR, None),
                                                  Token(TokenType.INTEGER, 9),
                                                  Token(TokenType.CLOSE_PAR, None),
+                                                 Token(TokenType.CLOSE_PAR, None),
+                                                 Token(TokenType.END, None)])
+
+    assert(run('  (   a \n\n\n\r\n  b   ) ') == [Token(TokenType.OPEN_PAR, None),
+                                                 Token(TokenType.ATOM, 'a'),
+                                                 Token(TokenType.ATOM, 'b'),
                                                  Token(TokenType.CLOSE_PAR, None),
                                                  Token(TokenType.END, None)])
 
