@@ -100,6 +100,9 @@ def tokenize(code):
             while c() and (c().isalnum() or c() in VALID_ATOM_CHARS): i += 1
             yield Token(TokenType.ATOM, code[d:i])
             continue
+        elif c() == ';':
+            while c() != '\n':
+                i += 1
         else:
             raise SyntaxError("Unexpected char `{}'".format(c()))
         i += 1
@@ -352,6 +355,9 @@ def test_tokenizer():
                                                  Token(TokenType.DOT, None),
                                                  Token(TokenType.ATOM, 'b'),
                                                  Token(TokenType.CLOSE_PAR, None),
+                                                 Token(TokenType.END, None)])
+
+    assert(run('; foo\n1')                   == [Token(TokenType.INTEGER, 1),
                                                  Token(TokenType.END, None)])
 
 
