@@ -214,6 +214,10 @@ def primLambda(args, env):
     return Lambda(car(args), cdr(args))
 
 
+def primPrint(args, env):
+    printobj(evalValue(car(args), env))
+
+
 def evalCons(v, env):
     assert(isinstance(car(v), Atom))
     f = evalValue(car(v), env)
@@ -241,6 +245,7 @@ primFuncs = {
     'label': primLabel,
     'progn': primProgn,
     'lambda': primLambda,
+    'print': primPrint,
 }
 
 
@@ -275,7 +280,8 @@ def repl():
     while True:
         userInput = input("> ")
         if not userInput: continue
-        printobj(evaluate(userInput, env))
+        value = evaluate(userInput, env)
+        if value is not None: printobj(value)
         print()
 
 
