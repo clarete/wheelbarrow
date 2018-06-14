@@ -18,8 +18,9 @@ class TokenType(enum.Enum):
      INTEGER,
      STRING,
      DOT,
+     COLON,
      END,
-    ) = range(8)
+    ) = range(9)
 
 
 class Token:
@@ -79,6 +80,7 @@ def tokenize(code):
     while True:
         if c() is None: break
         elif c().isspace(): pass
+        elif c() == '.': yield Token(TokenType.DOT)
         elif c() == '(': yield Token(TokenType.OPEN_PAR)
         elif c() == ')': yield Token(TokenType.CLOSE_PAR)
         elif c() == "'": yield Token(TokenType.QUOTE)
@@ -249,6 +251,10 @@ def evaluate(code, env):
 def printlist(l, end=' '):
     head, tail = car(l), cdr(l)
     print('(', end='')
+    if not isinstance(tail, list):
+        printobj(head, end='' if tail == nil else ' ')
+        print('.', end=' ')
+        return printobj(tail, end=')')
     while head != nil:
         printobj(head, end='' if tail == nil else ' ')
         if tail == nil: break
@@ -328,6 +334,13 @@ def test_tokenizer():
 
     assert(run('  (   a \n\n\n\r\n  b   ) ') == [Token(TokenType.OPEN_PAR, None),
                                                  Token(TokenType.ATOM, 'a'),
+                                                 Token(TokenType.ATOM, 'b'),
+                                                 Token(TokenType.CLOSE_PAR, None),
+                                                 Token(TokenType.END, None)])
+
+    assert(run('(a . b)')                    == [Token(TokenType.OPEN_PAR, None),
+                                                 Token(TokenType.ATOM, 'a'),
+                                                 Token(TokenType.DOT, None),
                                                  Token(TokenType.ATOM, 'b'),
                                                  Token(TokenType.CLOSE_PAR, None),
                                                  Token(TokenType.END, None)])
