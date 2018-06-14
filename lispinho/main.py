@@ -269,6 +269,9 @@ def printobj(obj, end=''):
 
 def repl():
     env = primFuncs
+    env.update({'exit': lambda args, env: exit()})
+    print('lispinho {}'.format(__version__))
+    print('Type (exit) and hit enter to go back to the terminal')
     while True:
         userInput = input("> ")
         if not userInput: continue
