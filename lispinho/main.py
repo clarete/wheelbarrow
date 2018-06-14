@@ -52,9 +52,14 @@ class Lambda:
     def __call__(self, args, env):
         assert(len(self.arglist) == len(args))
         argEnv = env.copy()
-        for i, arg in enumerate(self.arglist):
-            if arg == nil: break
-            argEnv[arg.name] = args[i]
+        i, head, tail = 0, car(self.arglist), cdr(self.arglist)
+        flattenArgs = _flattenCons(args, env)
+        while head != nil:
+            assert(isinstance(head, Atom))
+            argEnv[head.name] = flattenArgs[i]
+            i += 1
+            if tail == nil: break
+            head, tail = car(tail), cdr(tail)
         return car(_flattenCons(self.body, argEnv))
 
 
@@ -387,6 +392,11 @@ def test_evaluator():
     #            '       (foo 2))'))
     assert(run('(progn (label foo (lambda (x) (+ x 1)))'
                '       (foo 2))') == 3)
+
+    # pprint(run('(progn (label foo (lambda (x y) (+ x y)))'
+    #            '       (foo 2 3))'))
+    assert(run('(progn (label foo (lambda (x y) (+ x y)))'
+               '       (foo 2 3))') == 5)
 
 
 def test():
