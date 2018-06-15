@@ -16,11 +16,12 @@ class TokenType(enum.Enum):
      QUOTE,
      ATOM,
      INTEGER,
+     FLOAT,
      STRING,
      DOT,
      COLON,
      END,
-    ) = range(9)
+    ) = range(10)
 
 
 class Token:
@@ -87,8 +88,13 @@ def tokenize(code):
         elif c().isdigit() or (c() == '-' and c(1) and c(1).isdigit()):
             d = i
             if c() == '-': i += 1
-            while c() and c().isdigit(): i += 1
-            yield Token(TokenType.INTEGER, int(code[d:i]))
+            _type = TokenType.INTEGER
+            while c() and (c().isdigit() or c() == '.'):
+                if c() == '.': _type = TokenType.FLOAT
+                i += 1
+            yield Token(_type, (int(code[d:i])
+                                if _type == TokenType.INTEGER
+                                else float(code[d:i])))
             continue
         elif c() == '"':
             i += 1; d = i;
@@ -156,6 +162,8 @@ class Parser:
         if self.matchToken(TokenType.QUOTE):
             return [Atom('quote'), [self.parseValue(), nil]]
         elif self.testToken(TokenType.INTEGER):
+            return self.returnCurrentAndMoveNext()
+        elif self.testToken(TokenType.FLOAT):
             return self.returnCurrentAndMoveNext()
         elif self.testToken(TokenType.ATOM):
             return self.returnCurrentAndMoveNext()
@@ -238,8 +246,7 @@ def lookup(env, name):
 
 
 def evalValue(v, env):
-    if isinstance(v, int): return v
-    elif isinstance(v, str): return v
+    if isinstance(v, (int, float, str)): return v
     elif isinstance(v, Atom): return lookup(env, v.name)
     elif isinstance(v, list): return evalCons(v, env)
 
@@ -314,6 +321,9 @@ def test_tokenizer():
 
     assert(run('"test"')                     == [Token(TokenType.STRING, 'test'), Token(TokenType.END, None)])
 
+    assert(run('3.141592653589793')          == [Token(TokenType.FLOAT, 3.141592653589793),
+                                                 Token(TokenType.END, None)])
+
     assert(run("'test")                      == [Token(TokenType.QUOTE, None),
                                                  Token(TokenType.ATOM, 'test'),
                                                  Token(TokenType.END, None)])
@@ -370,12 +380,21 @@ def test_tokenizer():
     assert(run('; foo\n1')                   == [Token(TokenType.INTEGER, 1),
                                                  Token(TokenType.END, None)])
 
+    assert(run("(1.2 3.4)")                  == [Token(TokenType.OPEN_PAR, None),
+                                                 Token(TokenType.FLOAT, 1.2),
+                                                 Token(TokenType.FLOAT, 3.4),
+                                                 Token(TokenType.CLOSE_PAR, None),
+                                                 Token(TokenType.END, None)])
+
 
 def test_parser():
     run = lambda c: parse(c)
 
     # pprint(run('1'))
     assert(run('1')                          == 1)
+
+    # pprint(run('3.141592653589793'))
+    assert(run('3.141592653589793')          == 3.141592653589793)
 
     # pprint(run('"test"'))
     assert(run('"test"')                     == 'test')
@@ -398,7 +417,11 @@ def test_parser():
                                                             [1, [[Atom('+'), [2, [3, nil]]],
                                                                  [9, nil]]]], nil]])
 
+    # pprint(run("'test"))
     assert(run("'test")                      == [Atom('quote'), [Atom('test'), nil]])
+
+    # pprint(run('(1.2 3.4)'))
+    assert(run('(1.2 3.4)')                  == [1.2, [3.4, nil]])
 
 
 def test_evaluator():
@@ -435,6 +458,9 @@ def test_evaluator():
     #            '       (foo 2 3))'))
     assert(run('(progn (label foo (lambda (x y) (+ x y)))'
                '       (foo 2 3))') == 5)
+
+    # pprint(run("(+ 1.2 3.4)"))
+    assert(run("(+ 1.2 3.4)") == 4.6)
 
 
 def test():
