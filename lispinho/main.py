@@ -293,7 +293,12 @@ def repl():
         print()
 
 
-def main():
+def evalFile(fileName, env=primFuncs):
+    return evaluate(open(fileName).read(), env)
+
+
+def main(args=sys.argv[1:]):
+    if args: return evalFile(args[0])
     try: repl()
     except EOFError: print()
 
