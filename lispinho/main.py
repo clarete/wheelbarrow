@@ -221,6 +221,10 @@ def primPrint(args, env):
     printobj(evalValue(car(args), env))
 
 
+def primEval(args, env):
+    return evaluate(car(args), env)
+
+
 def evalCons(v, env):
     assert(isinstance(car(v), Atom))
     f = evalValue(car(v), env)
@@ -249,6 +253,7 @@ primFuncs = {
     'progn': primProgn,
     'lambda': primLambda,
     'print': primPrint,
+    'eval': primEval,
 }
 
 
