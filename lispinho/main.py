@@ -3,9 +3,17 @@
 # Commit history available here: https://github.com/clarete/wheelbarrow/blob/master/lispinho/main.py
 # no dependencies, may also work with python2
 from __future__ import print_function
+from pprint import pprint
+
 import enum
 import readline
-from pprint import pprint
+import sys
+
+# Python 2 portability
+try: input = raw_input
+except NameError: pass
+
+__version__ = '0.0.1'
 
 VALID_ATOM_CHARS = ('_', '-', '+', '*', '/', '>', '<')
 
