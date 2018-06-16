@@ -51,9 +51,15 @@ class Lambda:
     def __init__(self, arglist, body):
         self.arglist = arglist
         self.body = body
+    def callBody(self, argEnv):
+        if isinstance(self.body, Nil): return nil
+        return car(_flattenCons(self.body, argEnv))
     def __call__(self, args, env):
         assert(len(self.arglist) == len(args))
         argEnv = env.copy()
+        # No parameters, let's bail
+        if isinstance(self.arglist, Nil):
+            return self.callBody(argEnv)
         i, head, tail = 0, car(self.arglist), cdr(self.arglist)
         flattenArgs = _flattenCons(args, env)
         while head != nil:
@@ -62,7 +68,7 @@ class Lambda:
             i += 1
             if tail == nil: break
             head, tail = car(tail), cdr(tail)
-        return car(_flattenCons(self.body, argEnv))
+        return self.callBody(argEnv)
 
 
 class Nil:
@@ -70,6 +76,8 @@ class Nil:
         return 'nil'
     def __eq__(self, other):
         return isinstance(other, self.__class__)
+    def __len__(self):
+        return 0
 
 
 nil = Nil()
@@ -222,6 +230,7 @@ def primProgn(args, env):
 
 
 def primLambda(args, env):
+    if isinstance(args, Nil): return Lambda(nil, nil)
     return Lambda(car(args), cdr(args))
 
 
@@ -234,8 +243,8 @@ def primEval(args, env):
 
 
 def evalCons(v, env):
-    assert(isinstance(car(v), Atom))
     f = evalValue(car(v), env)
+    assert(callable(f))
     return f(cdr(v), env)
 
 
@@ -461,6 +470,12 @@ def test_evaluator():
 
     # pprint(run("(+ 1.2 3.4)"))
     assert(run("(+ 1.2 3.4)") == 4.6)
+
+    # pprint(run("((lambda (x) (+ x 1)) 2)"))
+    assert(run("((lambda (x) (+ x 1)) 2)") == 3)
+
+    # pprint(run("((lambda ()))"))
+    assert(run("((lambda ()))") == nil)
 
 
 def test():
