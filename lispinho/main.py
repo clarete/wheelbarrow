@@ -274,7 +274,13 @@ primFuncs = {
 
 
 def evaluate(code, env):
-    return evalValue(Parser(code).parse(), env)
+    parser = Parser(code)
+    lastValue = None
+    while True:
+        expr = parser.parse()
+        if expr: lastValue = evalValue(expr, env)
+        else: break
+    return lastValue
 
 
 def printlist(l, end=' '):
