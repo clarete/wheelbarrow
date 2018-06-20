@@ -137,6 +137,7 @@ class Parser:
         self.code = code
         self.token = None
         self.tokens = tokenize(self.code) # Lazy
+        self.nextToken()
 
     def nextToken(self):
         try: self.token = next(self.tokens)
@@ -161,7 +162,7 @@ class Parser:
     def parseCons(self):
         if self.matchToken(TokenType.CLOSE_PAR): return None
         a = self.parseValue()
-        if not a: return None
+        if a is None: return None
 
         if self.matchToken(TokenType.DOT):
             b = self.parseValue()
@@ -169,7 +170,7 @@ class Parser:
             else: return [a, nil]
 
         b = self.parseCons()
-        if b: return [a, b]
+        if b is not None: return [a, b]
         else: return [a, nil]
 
     def parseValue(self):
@@ -188,7 +189,6 @@ class Parser:
         return None
 
     def parse(self):
-        self.nextToken()
         return self.parseValue()
 
 
@@ -286,8 +286,8 @@ def evaluate(code, env):
     lastValue = None
     while True:
         expr = parser.parse()
-        if expr: lastValue = evalValue(expr, env)
-        else: break
+        if expr is None: break
+        lastValue = evalValue(expr, env)
     return lastValue
 
 
@@ -409,6 +409,13 @@ def test_tokenizer():
                                                  Token(TokenType.CLOSE_PAR, None),
                                                  Token(TokenType.END, None)])
 
+    # pprint(run('(print 0)'))
+    assert(run('(print 0)')                  == [Token(TokenType.OPEN_PAR, None),
+                                                 Token(TokenType.ATOM, 'print'),
+                                                 Token(TokenType.INTEGER, 0),
+                                                 Token(TokenType.CLOSE_PAR, None),
+                                                 Token(TokenType.END, None)])
+
 
 def test_parser():
     run = lambda c: parse(c)
@@ -446,6 +453,9 @@ def test_parser():
     # pprint(run('(1.2 3.4)'))
     assert(run('(1.2 3.4)')                  == [1.2, [3.4, nil]])
 
+    # pprint(run('(print 0)'))
+    assert(run('(print 0)')                  == [Atom('print'), [0, nil]])
+
 
 def test_evaluator():
     run = lambda c: evaluate(c, primFuncs)
@@ -465,6 +475,9 @@ def test_evaluator():
 
     # pprint(run('(quote a)'))
     assert(run('(quote a)')                  == Atom('a'))
+
+    # pprint(run("'a"))
+    assert(run("'an-atom")                   == Atom('an-atom'))
 
     # pprint(run('(cond (nil 1) (nil 2) (1 3))'))
     assert(run('(cond (nil 1) (nil 2) (1 3))') == 3)
