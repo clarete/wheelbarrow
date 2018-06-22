@@ -27,9 +27,11 @@ class TokenType(enum.Enum):
      FLOAT,
      STRING,
      DOT,
-     COLON,
+     QUASIQUOTE,
+     UNQUOTE,
+     SPLICE,
      END,
-    ) = range(10)
+    ) = range(12)
 
 
 class Token:
@@ -101,6 +103,10 @@ def tokenize(code):
         elif c() == '(': yield Token(TokenType.OPEN_PAR)
         elif c() == ')': yield Token(TokenType.CLOSE_PAR)
         elif c() == "'": yield Token(TokenType.QUOTE)
+        elif c() == '`': yield Token(TokenType.QUASIQUOTE)
+        elif c() == ',' and c(1) and c(1) == '@':
+            yield Token(TokenType.SPLICE); i += 1
+        elif c() == ',': yield Token(TokenType.UNQUOTE)
         elif c().isdigit() or (c() == '-' and c(1) and c(1).isdigit()):
             d = i
             if c() == '-': i += 1
@@ -177,7 +183,13 @@ class Parser:
         if self.matchToken(TokenType.OPEN_PAR):
             return self.parseCons()
         if self.matchToken(TokenType.QUOTE):
-            return [Atom('quote'), [self.parseValue(), nil]]
+            return wrapFn('quote', self.parseValue())
+        elif self.matchToken(TokenType.QUASIQUOTE):
+            return wrapFn('quasiquote', self.parseValue())
+        elif self.matchToken(TokenType.UNQUOTE):
+            return wrapFn('unquote', self.parseValue())
+        elif self.matchToken(TokenType.SPLICE):
+            return wrapFn('splice', self.parseValue())
         elif self.testToken(TokenType.INTEGER):
             return self.returnCurrentAndMoveNext()
         elif self.testToken(TokenType.FLOAT):
@@ -196,8 +208,13 @@ def parse(tokens):
     return Parser(tokens).parse()
 
 
+def isFn(v, name): return isinstance(v, Atom) and v.name == name
+
+def wrapFn(fn, v): return [Atom(fn), [v, nil]]
+
 def car(l): return l[0]
 
+def caar(l): return car(l[0])
 
 def cdr(l): return l[1]
 
@@ -416,6 +433,27 @@ def test_tokenizer():
                                                  Token(TokenType.CLOSE_PAR, None),
                                                  Token(TokenType.END, None)])
 
+    # pprint(run("`'a"))
+    assert(run("`'a")                        == [Token(TokenType.QUASIQUOTE),
+                                                 Token(TokenType.QUOTE),
+                                                 Token(TokenType.ATOM, 'a'),
+                                                 Token(TokenType.END)])
+
+
+    # pprint(run("`(a ,@(list 1 2) c)"))
+    assert(run("`(a ,@(list 1 2) c)")        == [Token(TokenType.QUASIQUOTE),
+                                                 Token(TokenType.OPEN_PAR),
+                                                 Token(TokenType.ATOM, 'a'),
+                                                 Token(TokenType.SPLICE),
+                                                 Token(TokenType.OPEN_PAR),
+                                                 Token(TokenType.ATOM, 'list'),
+                                                 Token(TokenType.INTEGER, 1),
+                                                 Token(TokenType.INTEGER, 2),
+                                                 Token(TokenType.CLOSE_PAR),
+                                                 Token(TokenType.ATOM, 'c'),
+                                                 Token(TokenType.CLOSE_PAR),
+                                                 Token(TokenType.END)])
+
 
 def test_parser():
     run = lambda c: parse(c)
@@ -455,6 +493,18 @@ def test_parser():
 
     # pprint(run('(print 0)'))
     assert(run('(print 0)')                  == [Atom('print'), [0, nil]])
+
+    # pprint(run("`'a"))
+    assert(run("`'a")                        == [Atom('quasiquote'),
+                                                 [[Atom('quote'), [Atom('a'), nil]],
+                                                  nil]])
+
+    # pprint(run("`(a ,@'(1 2) c)"))
+    assert(run("`(a ,@'(1 2) c)")            == [Atom('quasiquote'),
+                                                 [[Atom('a'),
+                                                   [[Atom('splice'), [[Atom('quote'), [[1, [2, nil]], nil]], nil]],
+                                                    [Atom('c'), nil]]],
+                                                  nil]])
 
 
 def test_evaluator():
