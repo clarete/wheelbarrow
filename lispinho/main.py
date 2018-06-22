@@ -239,6 +239,7 @@ def primCond(args, env):
     while head != nil:
         cond = evalValue(car(head), env)
         if cond != nil: return evalValue(car(cdr(head)), env)
+        elif tail == nil: return nil
         head, tail = car(tail), cdr(tail)
     return nil
 
@@ -555,10 +556,19 @@ def test_evaluator():
     assert(run("((lambda ()))") == nil)
 
 
+def test_prims():
+    run = lambda c: evaluate(c, primFuncs)
+    assert(run("(quote a)") == Atom('a'))
+    assert(run("(cond (1 1))") == 1)
+    assert(run("(cond (nil 1) (1 2))") == 2)
+    assert(run("(cond (nil 1) (nil 2))") == nil)
+
+
 def test():
     test_tokenizer()
     test_parser()
     test_evaluator()
+    test_prims()
 
 
 if __name__ == '__main__':
