@@ -234,6 +234,21 @@ def primQuote(args, env):
     return car(args)
 
 
+def primCar(args, env):
+    return car(evalValue(car(args), env))
+
+
+def primCdr(args, env):
+    return cdr(evalValue(car(args), env))
+
+
+def primCons(args, env):
+    if isinstance(args, Nil): return nil
+    right = primCons(cdr(args), env)
+    if isinstance(right, list): right = car(right)
+    return [evalValue(car(args), env), right]
+
+
 def primCond(args, env):
     head, tail = car(args), cdr(args)
     while head != nil:
@@ -290,6 +305,9 @@ primFuncs = {
     'nil': nil,
     '+': primSum,
     'quote': primQuote,
+    'car': primCar,
+    'cdr': primCdr,
+    'cons': primCons,
     'cond': primCond,
     'label': primLabel,
     'progn': primProgn,
@@ -558,10 +576,21 @@ def test_evaluator():
 
 def test_prims():
     run = lambda c: evaluate(c, primFuncs)
+
+    # pprint(run("(quote a))
     assert(run("(quote a)") == Atom('a'))
+    # pprint(run("(car '(1 2 3))"))
+    assert(run("(car '(1 2 3))") == 1)
+    # pprint(run("(cdr '(1 2 3))"))
+    assert(run("(cdr '(1 2 3))") == [2, [3, nil]])
+    # pprint(run("(cond (1 1))"))
     assert(run("(cond (1 1))") == 1)
+    # pprint(run("(cond (nil 1) (1 2))"))
     assert(run("(cond (nil 1) (1 2))") == 2)
+    # pprint(run("(cond (nil 1) (nil 2))"))
     assert(run("(cond (nil 1) (nil 2))") == nil)
+    # pprint(run("(cons 1 (cons 2 nil))"))
+    assert(run("(cons 1 (cons 2 nil))") == [1, [2, nil]])
 
 
 def test():
