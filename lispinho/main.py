@@ -57,6 +57,7 @@ class Atom:
         return (isinstance(other, self.__class__) and
                 other.name == self.name)
 
+
 class Lambda:
     def __init__(self, arglist, body):
         self.arglist = arglist
@@ -64,12 +65,17 @@ class Lambda:
     def callBody(self, argEnv):
         if isinstance(self.body, Nil): return nil
         return car(_flattenCons(self.body, argEnv))
+    def __str__(self):
+        printobj(self.arglist, end='\n')
+        printobj(self.body, end='\n')
+        print()
+        return repr(self)
     def __call__(self, args, env):
-        assert(len(self.arglist) == len(args))
         argEnv = env.copy()
         # No parameters, let's bail
         if isinstance(self.arglist, Nil):
             return self.callBody(argEnv)
+        assert(len(self.arglist) == len(args))
         i, head, tail = 0, car(self.arglist), cdr(self.arglist)
         flattenArgs = _flattenCons(args, env)
         while head != nil:
@@ -78,6 +84,32 @@ class Lambda:
             i += 1
             if tail == nil: break
             head, tail = car(tail), cdr(tail)
+        return self.callBody(argEnv)
+
+
+class Macro:
+    def __init__(self, arglist, body):
+        self.arglist = arglist
+        self.body = body
+    def callBody(self, argEnv):
+        return evalValue(qqEval(self.body, argEnv.copy()), argEnv)
+    def __call__(self, args, env):
+        argEnv = env
+        # No parameters, let's bail
+        if isinstance(self.arglist, Nil):
+            return self.callBody(argEnv)
+        assert(len(self.arglist) == len(args))
+        i, head, tail = 0, car(self.arglist), cdr(self.arglist)
+        ahead, atail = car(args), cdr(args)
+        while head != nil:
+            if ahead == nil: raise TypeError('wrong arity')
+            assert(isinstance(head, Atom))
+            argEnv[head.name] = ahead
+            i += 1
+            if tail == nil: break
+            if atail == nil: raise TypeError('wrong arity')
+            head, tail = car(tail), cdr(tail)
+            ahead, atail = car(atail), cdr(atail)
         return self.callBody(argEnv)
 
 
@@ -226,12 +258,57 @@ def _flattenCons(v, env):
     return out
 
 
+def primEnv(args, env):
+    return env
+
+
+def primPp(args, env):
+    thing = evalValue(car(args), env)
+    pprint(thing)
+    return thing
+
+
 def primSum(args, env):
     return sum(_flattenCons(args, env))
 
 
 def primQuote(args, env):
     return car(args)
+
+
+def primUnquote(args, env): raise SyntaxError
+
+def primSplice(args, env): raise SyntaxError
+
+
+def splice(args, rest):
+    l = args
+    while car(l):
+        if isinstance(cdr(l), Nil):
+            l[1] = rest
+            break
+        l = cdr(l)
+    return args
+
+
+def qqEval(args, env):
+    if isinstance(args, Nil): return args
+    elif not isinstance(car(args), list):
+        return [car(args), qqEval(cdr(args), env)]
+    elif isFn(caar(args), 'quasiquote'):
+        return qqEval(car(cdr(car(args))), env)
+    elif isFn(caar(args), 'unquote'):
+        return [evalValue(car(cdr(car(args))), env), qqEval(cdr(args), env)]
+    elif isFn(caar(args), 'splice'):
+        value = evalValue(car(cdr(car(args))), env)
+        return splice(value, qqEval(cdr(args), env))
+    else:
+        return car(args)
+
+
+def primQuasiQuote(args, env):
+    if isFn(caar(args), 'quote'): return car(args)
+    return wrapFn('quote', qqEval(car(args), env))
 
 
 def primCar(args, env):
@@ -275,8 +352,14 @@ def primLambda(args, env):
     return Lambda(car(args), cdr(args))
 
 
+def primMacro(args, env):
+    if isinstance(args, Nil): return Macro(nil, nil)
+    return Macro(car(args), cdr(args))
+
+
 def primPrint(args, env):
     printobj(evalValue(car(args), env))
+    print()
 
 
 def primEval(args, env):
@@ -305,6 +388,9 @@ primFuncs = {
     'nil': nil,
     '+': primSum,
     'quote': primQuote,
+    'quasiquote': primQuasiQuote,
+    'unquote': primUnquote,
+    'splice': primSplice,
     'car': primCar,
     'cdr': primCdr,
     'cons': primCons,
@@ -312,8 +398,11 @@ primFuncs = {
     'label': primLabel,
     'progn': primProgn,
     'lambda': primLambda,
+    'macro': primMacro,
     'print': primPrint,
     'eval': primEval,
+    'env': primEnv,
+    'pp': primPp,
 }
 
 
@@ -527,7 +616,7 @@ def test_parser():
 
 
 def test_evaluator():
-    run = lambda c: evaluate(c, primFuncs)
+    run = lambda c: evaluate(c, primFuncs.copy())
 
     # pprint(run('1'))
     assert(run('1')                          == 1)
@@ -573,9 +662,28 @@ def test_evaluator():
     # pprint(run("((lambda ()))"))
     assert(run("((lambda ()))") == nil)
 
+    # pprint(run("`(0 1 2)"))
+    assert(run("`(0 1 2)") == [Atom('quote'), [[0, [1, [2, nil]]], nil]])
+
+    # pprint(run("`'a"))
+    assert(run("`'a")                        == [Atom('quote'), [Atom('a'), nil]])
+
+    # pprint(run('(quasiquote (0 (unquote (+ 1 2)) 6))'))
+    # pprint(run("`(0 ,(+ 1 2) 6)"))
+    # pprint(run("`(0 3 6)"))
+    assert(run("`(0 ,(+ 1 2) 6)") == run("`(0 3 6)"))
+
+    # pprint(run("`(a ,@'(1 2) c)"))
+    assert(run("`(a ,@'(1 2) c)") == run("`'(a 1 2 c)"))
+
+    # pprint(run("(label m (macro (x) `(+ 1 ,x)))"
+    #            "(m 2)"))
+    assert(run("(label m (macro (x) `(+ 1 ,x)))"
+               "(m 2)") == 3)
+
 
 def test_prims():
-    run = lambda c: evaluate(c, primFuncs)
+    run = lambda c: evaluate(c, primFuncs.copy())
 
     # pprint(run("(quote a))
     assert(run("(quote a)") == Atom('a'))
@@ -593,11 +701,30 @@ def test_prims():
     assert(run("(cons 1 (cons 2 nil))") == [1, [2, nil]])
 
 
+def test_macros():
+    localEnv = primFuncs.copy()
+    run = lambda c: evaluate(c, localEnv)
+
+    # pprint(run("(label x (macro (a) `(,@a)))"))
+    # pprint(run("(x '1)"))
+    run("(label x (macro (a) `(,@a)))")
+    assert(run("(x '1)") == 1)
+
+    pprint(run("(label defmacro (macro (name args body)"
+               "  `(label ,name ((macro (,@args) ,@body)))))"))
+
+    # pprint(run("(label ds (macro (n v) `(label ,n ,@v)))"))
+    # pprint(run("(ds a '(2))"))
+    # pprint(run("(a a)"))
+    # run("(label x (macro (a) `(,@a)))")
+    # assert(run("(x '1)") == 1)
+
 def test():
     test_tokenizer()
     test_parser()
     test_evaluator()
     test_prims()
+    test_macros()
 
 
 if __name__ == '__main__':
