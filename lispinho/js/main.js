@@ -15,6 +15,8 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+const readline = require('readline');
+
 const TokenTypes = {
   OpenPar:  0,
   ClosePar: 1,
@@ -191,10 +193,32 @@ function testEvaluate() {
   assertEq(e3(), 7, "Can't eval define and sum");
 }
 
+function repl() {
+  const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout,
+    terminal: false
+  });
+
+  const setPrompt = () => {
+    const prefix = '> ';
+    rl.setPrompt(prefix, prefix.length);
+    rl.prompt();
+  };
+
+  rl.on('line', (line) => {
+    console.log(evaluate(line)());
+    setPrompt();
+  });
+
+  setPrompt();
+}
+
 function main() {
   testTokenizer();
   testParse();
   testEvaluate();
+  repl();
 }
 
-main();
+if (!module.parent) main();
