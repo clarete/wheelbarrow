@@ -6,6 +6,7 @@ from __future__ import print_function
 from pprint import pprint
 
 import enum
+import os
 import readline
 import sys
 
@@ -272,6 +273,17 @@ def primSum(args, env):
     return sum(_flattenCons(args, env))
 
 
+def primRequire(args, env):
+    newEnv = primFuncs.copy()
+    fileName = car(args)
+    evalFile(fileName, newEnv)
+    for i in primFuncs: del newEnv[i]
+    baseName, _ = os.path.splitext(fileName)
+    if baseName in primFuncs: raise ImportError('Name {} is reserved'.format(baseName))
+    env[baseName] = newEnv
+    return nil
+
+
 def primQuote(args, env):
     return car(args)
 
@@ -403,6 +415,7 @@ primFuncs = {
     'eval': primEval,
     'env': primEnv,
     'pp': primPp,
+    'require': primRequire,
 }
 
 
