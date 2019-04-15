@@ -1,0 +1,30 @@
+* main2:
+** Arithmetic operations
+   * summation: (+ a b c d...)
+   * subtraction: (- a b c d...)
+   * division: (/ a b)
+   * multiplication: (* a b)
+   * powers: (** a b)
+   * reminder: (% a b); e.g.: (= (% 3 2) 1) true
+** Comparison
+   * Equal: (= a b); e.g.: (= 1 1) true
+   * Greater Then: (> a b)
+   * Greater Or Equal Then: (>= a b)
+   * Less Then: (< a b)
+   * Less Or Equal Then: (<= a b)
+** Lisp
+   * ~(quote thing)~: Outputs ~thing~
+   * ~(car (quote 1 2 3))~: Outputs ~1~
+   * ~(cdr (quote 1 2 3))~: Outputs ~[2, 3]~
+   * ~(define name #t)~: Outputs ~#t~ & saves as key ~name~ in scope
+   * ~(lambda (a b c..) body)~: Outputs a new Lambda object. P.s.: The
+     body is a single s-expression. If you need more, use ~progn~.
+   * ~(if test brancht branchf)~: Outputs ~brancht~ if ~test~
+     evaluates to ~true~. Returns ~branchf~ otherwise.
+   * ~(progn (define a 1) (+ a 1))~: Outputs ~2~. It carries more than
+     one statement within it. Useful for ~if~ branches and ~lambda~
+     bodies that take more one statement.
+** Lists
+   * ~(len (quote (1 2 3 4))~: Outputs 4
+** IO
+   * ~(print 2)~: Prints out the object in the standard output
