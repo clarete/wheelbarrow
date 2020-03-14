@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en-us">
+  <head>
+    <meta charset="utf-8">
+    <title>Polyrhythm</title>
+    <meta name="description" content="A Polyrhythm editor">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+     .scene { background: #000; }
+    </style>
+  </head>
+  <body>
+    <div class="scene">
+      <canvas class="canvas"></canvas>
+    </div>
+
+    <script>
+     /* Many thanks to
+        https://math.stackexchange.com/questions/2820194/how-to-plot-n-coords-to-distribute-evenly-as-a-ring-of-points-around-a-circle
+        */
+
+     const canvas = document.querySelector('canvas');
+     const context = canvas.getContext('2d');
+
+     /* Canvas dimensions */
+     const [width, height] = [120, 120];
+
+     /* Radius of the outer circle */
+     const radius = 50;
+
+     /* Number of points that we want to plot */
+     const points = 5;
+
+     /* The entire circle is `360∘ ≡ 2π` and we we want to find the
+        distance between each point `2π / N`. */
+     const angle = (2 * Math.PI) / points;
+     const startAngle = -.5 * Math.PI;
+
+     /* Configure canvas */
+     canvas.style.padding = '20px';
+     canvas.width = width;
+     canvas.height = height;
+
+     function drawOuterCircle() {
+       context.lineWidth = 3;
+       context.strokeStyle = '#fc0';
+       context.beginPath();
+       context.arc(
+         width / 2,   /* x */
+         height / 2,  /* y */
+         radius,      /* radius */
+         0,           /* angle start */
+         2 * Math.PI, /* angle end */
+       );
+       context.stroke();
+     }
+
+     const drawDot = (x, y) => {
+       context.strokeStyle = '#fc0';
+       context.fillStyle = '#f00';
+       context.beginPath();
+       context.arc(x, y, 6, 0, 2 * Math.PI);
+       context.fill();
+       context.stroke();
+     }
+
+     drawOuterCircle();
+
+     /* Find the equidistant points */
+     for (let i = 0; i < points; i++) {
+       const a = startAngle + angle * i;
+       const x = Math.cos(a) * radius + width / 2;
+       const y = Math.sin(a) * radius + height / 2;
+       console.log('point', a, x, y);
+       drawDot(x, y);
+     }
+
+    </script>
+  </body>
+</html>
