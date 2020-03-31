@@ -3,4 +3,4 @@
   Small lumps of code that aren't big enough to get their own shiny
   repository
 
-  ![Carrinho de Mão](./carrinhodemao.jpg)
+  [[./carrinhodemao.jpg]]
