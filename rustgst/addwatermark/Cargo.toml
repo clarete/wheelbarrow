@@ -1,0 +1,17 @@
+[package]
+name = "addwatermark"
+version = "0.1.0"
+authors = ["Lincoln de Sousa <lincoln@comum.org>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+anyhow = '*'
+log = "*"
+env_logger = "*"
+
+glib = "0.9"
+gdk-pixbuf = "0.8"
+gst = { package = "gstreamer", version = "0.15", features = ["v1_14"] }
+gstreamer-pbutils = { package = "gstreamer-pbutils", version = "0.15", features = ["v1_14"] }
