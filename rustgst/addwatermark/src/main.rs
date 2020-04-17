@@ -51,6 +51,11 @@ fn configure_source(pipeline_weak: WeakRef<gst::Pipeline>, src: &gst::Element) {
             None => return,
         };
 
+        let overlay = match pipeline.get_by_name("overlay") {
+            Some(overlay) => overlay,
+            None => return,
+        };
+
         let (is_audio, is_video) = {
             let media_type = dbin_src_pad.get_current_caps().and_then(|caps| {
                 caps.get_structure(0).map(|s| {
@@ -108,9 +113,9 @@ fn configure_source(pipeline_weak: WeakRef<gst::Pipeline>, src: &gst::Element) {
                 let queue = make_element("queue", None)?;
                 let convert = make_element("videoconvert", None)?;
                 let scale = make_element("videoscale", None)?;
-                let elements = &[&queue, &convert, &scale];
+                let elements = &[&queue, &convert, &overlay, &scale];
                 pipeline
-                    .add_many(elements)
+                    .add_many(&[&queue, &convert, &scale])
                     .expect("failed to add video elements to pipeline");
                 gst::Element::link_many(elements)?;
 
@@ -194,7 +199,7 @@ fn execute(video_uri: &str, image_uri: &str) -> Result<(), Error> {
     let src = make_element("uridecodebin", Some("src"))?;
     let encodebin = make_element("encodebin", Some("encode"))?;
     let sink = make_element("filesink", None)?;
-    let overlay = make_element("gdkpixbufoverlay", None)?;
+    let overlay = make_element("gdkpixbufoverlay", Some("overlay"))?;
 
     let output_file = output_file_name(video_uri)?;
     src.set_property("uri", &video_uri)?;
@@ -206,7 +211,7 @@ fn execute(video_uri: &str, image_uri: &str) -> Result<(), Error> {
 
     configure_encoder(&encodebin)?;
 
-    pipeline.add_many(&[&src, &encodebin, &sink])?;
+    pipeline.add_many(&[&src, &overlay, &encodebin, &sink])?;
 
     gst::Element::link_many(&[&encodebin, &sink])?;
 
