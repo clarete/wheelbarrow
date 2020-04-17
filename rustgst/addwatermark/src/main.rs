@@ -210,6 +210,11 @@ fn execute(video_uri: &str, image_uri: &str) -> Result<(), Error> {
 
     let watermark = gdk_pixbuf::Pixbuf::new_from_file(Path::new(image_uri))?;
     overlay.set_property("pixbuf", &watermark)?;
+    overlay.set_property("overlay-width", &100)?;
+    overlay.set_property("overlay-height", &100)?;
+    overlay.set_property("relative-x", &0.8)?;
+    overlay.set_property("relative-y", &0.8)?;
+    overlay.set_property("alpha", &0.5)?;
     // overlay.set_property("positioning-mode", &1)?;
 
     configure_encoder(&encodebin)?;
