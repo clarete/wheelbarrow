@@ -163,21 +163,27 @@ fn configure_encoder(encodebin: &gst::Element) -> Result<(), Error> {
     // everything to be combined into.
 
     // Every audiostream piped into the encodebin should be encoded using vorbis.
+    let audio_caps = gst::Caps::new_simple("audio/mpeg", &[("mpegversion", &1), ("layer", &3)]);
     let audio_profile = gst_pbutils::EncodingAudioProfileBuilder::new()
-        .format(&gst::Caps::new_simple("audio/x-vorbis", &[]))
+        .format(&audio_caps)
         .presence(0)
         .build()?;
 
     // Every videostream piped into the encodebin should be encoded using theora.
+    let video_caps = gst::Caps::new_simple(
+        "video/x-h264",
+        &[("stream-format", &"avc"), ("alignment", &"au")],
+    );
     let video_profile = gst_pbutils::EncodingVideoProfileBuilder::new()
-        .format(&gst::Caps::new_simple("video/x-theora", &[]))
+        .format(&video_caps)
         .presence(0)
         .build()?;
 
     // All streams are then finally combined into a matroska container.
+    let container_caps = gst::Caps::new_simple("video/quicktime", &[("variant", &"iso")]);
     let container_profile = gst_pbutils::EncodingContainerProfileBuilder::new()
         .name("container")
-        .format(&gst::Caps::new_simple("video/x-matroska", &[]))
+        .format(&container_caps)
         .add_profile(&(video_profile))
         .add_profile(&(audio_profile))
         .build()?;
