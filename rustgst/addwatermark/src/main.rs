@@ -6,8 +6,8 @@ extern crate log;
 extern crate anyhow;
 use anyhow::Error;
 use gdk_pixbuf;
-use gst::{self, prelude::*};
 use glib::object::WeakRef;
+use gst::{self, prelude::*};
 extern crate gstreamer_pbutils as gst_pbutils;
 
 use gst_pbutils::prelude::*;
@@ -31,10 +31,7 @@ fn output_file_name(input: &str) -> Result<String, Error> {
 /// Load Gstreamer element with a nice error message containing the
 /// element name in case of failure
 fn make_element(name: &str, id: Option<&str>) -> Result<gst::Element, Error> {
-    Ok(
-        gst::ElementFactory::make(name, id)
-            .map_err(|_| anyhow!("Can't load element {}", name))?,
-    )
+    Ok(gst::ElementFactory::make(name, id).map_err(|_| anyhow!("Can't load element {}", name))?)
 }
 
 fn configure_source(pipeline_weak: WeakRef<gst::Pipeline>, src: &gst::Element) {
@@ -237,10 +234,13 @@ fn execute(video_uri: &str, image_uri: &str) -> Result<(), Error> {
             MessageView::Error(err) => {
                 pipeline.set_state(gst::State::Null)?;
 
-                error!("ERROR: {:?} {}", err, msg
-                       .get_src()
-                       .map(|s| String::from(s.get_path_string()))
-                       .unwrap_or_else(|| String::from("None")));
+                error!(
+                    "ERROR: {:?} {}",
+                    err,
+                    msg.get_src()
+                        .map(|s| String::from(s.get_path_string()))
+                        .unwrap_or_else(|| String::from("None"))
+                );
             }
             MessageView::StateChanged(s) => {
                 println!(
